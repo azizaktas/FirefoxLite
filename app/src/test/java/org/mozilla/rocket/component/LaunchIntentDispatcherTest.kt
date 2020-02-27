@@ -3,14 +3,20 @@ package org.mozilla.rocket.component
 import android.app.Application
 import android.content.Intent
 import android.content.Intent.ACTION_MAIN
+import android.os.Build
 import androidx.test.core.app.ApplicationProvider
+import org.junit.Test
+import org.junit.runner.RunWith
 import org.mozilla.focus.notification.RocketMessagingService.Companion.STR_PUSH_COMMAND
 import org.mozilla.focus.notification.RocketMessagingService.Companion.STR_PUSH_OPEN_URL
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
-// @RunWith(RobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [Build.VERSION_CODES.O_MR1])
 class LaunchIntentDispatcherTest {
 
-//    @Test
+    @Test
     fun dispatch() {
         val command = Intent()
         command.putExtra(STR_PUSH_COMMAND, LaunchIntentDispatcher.Command.SET_DEFAULT.value)

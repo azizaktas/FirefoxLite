@@ -9,6 +9,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import android.webkit.URLUtil
+import androidx.annotation.WorkerThread
 import androidx.core.app.NotificationCompat
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequest
@@ -16,11 +17,23 @@ import androidx.work.WorkManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import mozilla.components.concept.fetch.MutableHeaders
+import mozilla.components.concept.fetch.Request
+import mozilla.components.concept.fetch.interceptor.withInterceptors
+import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import org.mozilla.focus.telemetry.TelemetryWrapper
 import org.mozilla.focus.telemetry.TelemetryWrapper.getNotification
 import org.mozilla.focus.telemetry.TelemetryWrapper.isTelemetryEnabled
+import org.mozilla.focus.utils.FirebaseHelper
 import org.mozilla.focus.utils.IntentUtils
+import org.mozilla.focus.utils.Settings
+import org.mozilla.rocket.msrp.data.LoggingInterceptor
+import org.mozilla.telemetry.TelemetryHolder
 import org.mozilla.threadutils.ThreadUtils
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -59,19 +72,7 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        sendRegistrationToServer(token)
-    }
-
-    private fun sendRegistrationToServer(token: String) {
-        Log.d("FirebaseAaaa", "[$token]----")
-//        place holder for the server side
-//        HttpURLConnectionClient()
-//                .withInterceptors(LoggingInterceptor())
-//                .fetch(Request(
-//                        url = ""
-//                )).use {
-//                    Log.d("FirebaseAaaa", "[$token]----${it.body.toString()}")
-//                }
+        handleNewToken(applicationContext, token)
     }
 
     private fun parseMessageId(data: Map<String, String>): String? {
@@ -126,6 +127,9 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
         const val STR_DATA_MSG_DISPLAY_TYPE = "display_type"
         const val LONG_DATA_MSG_DISPLAY_TIMESTAMP = "display_timestamp"
         const val STR_DATA_MSG_IMAGE_URL = "image_uri"
+
+        private const val TAG = "RocketMessagingService"
+        private const val STR_USER_TOKEN_API = "str_user_token_api"
 
         fun scheduleNotification(applicationContext: Context, messageId: String, imageUri: String?, title: String?, body: String?, openUrl: String?, pushCommand: String?, deepLink: String?, displayTimestamp: Long) {
 
@@ -224,6 +228,71 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
             val intent = IntentUtils.genDeleteFirebaseNotificationActionForBroadcastReceiver(appContext, messageId, link)
             val pendingIntent = PendingIntent.getBroadcast(appContext, RocketMessagingService.REQUEST_CODE_DELETE_NOTIFICATION, intent, PendingIntent.FLAG_ONE_SHOT)
             builder.setDeleteIntent(pendingIntent)
+        }
+
+        fun checkFcmTokenUploaded(applicationContext: Context) {
+            val hashedFcmToken = Settings.getInstance(applicationContext).hashedFcmToken
+            val currentFcmToken = FirebaseHelper.getFirebase().getFcmToken()
+            if (currentFcmToken == null) {
+                Log.w(TAG, "currentFcmToken is null. Wait for it and retry")
+                return
+            }
+            if (hashedFcmToken != currentFcmToken.hashCode()) {
+                Log.d(TAG, "handleNewToken....")
+                handleNewToken(applicationContext, currentFcmToken)
+            } else {
+                Log.w(TAG, "token not changed")
+            }
+        }
+
+        private fun handleNewToken(applicationContext: Context, token: String) {
+            runBlocking {
+                withContext(Dispatchers.IO) {
+                    FirebaseHelper.getFirebase().getUserToken {
+                        it?.apply {
+                            sendRegistrationToServer(applicationContext, this, token)
+                        }
+                    }
+                }
+            }
+        }
+
+        @WorkerThread
+        private fun sendRegistrationToServer(applicationContext: Context, fbUid: String, fcmToken: String) {
+            val telemetryClientId = TelemetryHolder.get().clientId
+            if (telemetryClientId == null) {
+                Log.w(TAG, "telemetryClientId is null")
+                return
+            }
+            // something like //"http://10.0.2.2:8080/api/v1/user/token"
+            val userTokenApiUrl = FirebaseHelper.getFirebase().getRcString(STR_USER_TOKEN_API)
+            if (userTokenApiUrl.isEmpty()) {
+                Log.w(TAG, "userTokenApiUrl is empty. Wait for RemoteConfig and retry")
+                return
+            }
+            val request = Request(
+                    url = userTokenApiUrl,
+                    headers = MutableHeaders(
+                            "Authorization" to "Bearer $fbUid"
+                    ),
+                    body = Request.Body.fromParamsForFormUrlEncoded(
+                            "telemetry_client_id" to telemetryClientId,
+                            "fcm_token" to fcmToken
+                    )
+            )
+            try {
+
+                HttpURLConnectionClient()
+                        .withInterceptors(LoggingInterceptor())
+                        .fetch(request).use {
+                            if (it.status == 200) {
+                                Settings.getInstance(applicationContext).setHashedFcmToken(fcmToken)
+                                Log.d(TAG, "FCM Token uploaded: ${fcmToken.hashCode()}")
+                            }
+                        }
+            } catch (e: IOException) {
+                Log.e(TAG, "FCM Token upload ERROR: [${fcmToken.hashCode()}] with [${e.localizedMessage}]")
+            }
         }
     }
 }

@@ -126,16 +126,13 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
         const val STR_DATA_MSG_BODY = "body"
         const val STR_DATA_MSG_DISPLAY_TYPE = "display_type"
         const val LONG_DATA_MSG_DISPLAY_TIMESTAMP = "display_timestamp"
-        const val STR_DATA_MSG_IMAGE_URL = "image_uri"
+        const val STR_DATA_MSG_IMAGE_URL = "image_url"
 
         private const val TAG = "RocketMessagingService"
         private const val STR_USER_TOKEN_API = "str_user_token_api"
 
         fun scheduleNotification(applicationContext: Context, messageId: String, imageUri: String?, title: String?, body: String?, openUrl: String?, pushCommand: String?, deepLink: String?, displayTimestamp: Long) {
 
-            if (imageUri != null && !URLUtil.isValidUrl(imageUri)) {
-                return
-            }
             val inputDataBuilder = Data.Builder()
                     .putString(STR_MESSAGE_ID, messageId)
                     .putString(STR_DATA_MSG_TITLE, title)
@@ -144,14 +141,16 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
                     .putString(STR_PUSH_COMMAND, pushCommand)
                     .putString(STR_PUSH_DEEP_LINK, deepLink)
 
-            if ((imageUri != null)) {
+            // only allow valid urls
+            if (imageUri != null && URLUtil.isValidUrl(imageUri)) {
                 inputDataBuilder.putString(STR_DATA_MSG_IMAGE_URL, imageUri)
             }
 
+            val delay = displayTimestamp - System.currentTimeMillis()
             val request =
                     OneTimeWorkRequest.Builder(NotificationScheduleWorker::class.java)
                             .setInputData(inputDataBuilder.build())
-                            .setInitialDelay(displayTimestamp - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+                            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
                             .addTag(messageId)
                             .build()
 

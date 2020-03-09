@@ -65,9 +65,9 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
             return
         }
 
-        val imageUri = parseImageUrl(data)
+        val imageUrl = parseImageUrl(data)
 
-        scheduleNotification(applicationContext, messageId, imageUri, title, body, openUrl, pushCommand, deepLink, displayTimestamp)
+        scheduleNotification(applicationContext, messageId, imageUrl, title, body, openUrl, pushCommand, deepLink, displayTimestamp)
     }
 
     override fun onNewToken(token: String) {
@@ -131,7 +131,7 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
         private const val TAG = "RocketMessagingService"
         private const val STR_USER_TOKEN_API = "str_user_token_api"
 
-        fun scheduleNotification(applicationContext: Context, messageId: String, imageUri: String?, title: String?, body: String?, openUrl: String?, pushCommand: String?, deepLink: String?, displayTimestamp: Long) {
+        fun scheduleNotification(applicationContext: Context, messageId: String, imageUrl: String?, title: String?, body: String?, openUrl: String?, pushCommand: String?, deepLink: String?, displayTimestamp: Long) {
 
             val inputDataBuilder = Data.Builder()
                     .putString(STR_MESSAGE_ID, messageId)
@@ -142,8 +142,8 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
                     .putString(STR_PUSH_DEEP_LINK, deepLink)
 
             // only allow valid urls
-            if (imageUri != null && URLUtil.isValidUrl(imageUri)) {
-                inputDataBuilder.putString(STR_DATA_MSG_IMAGE_URL, imageUri)
+            if (imageUrl != null && URLUtil.isValidUrl(imageUrl)) {
+                inputDataBuilder.putString(STR_DATA_MSG_IMAGE_URL, imageUrl)
             }
 
             val delay = displayTimestamp - System.currentTimeMillis()

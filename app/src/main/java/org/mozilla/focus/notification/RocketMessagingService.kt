@@ -240,14 +240,14 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
                 Log.d(TAG, "handleNewToken....")
                 handleNewToken(applicationContext, currentFcmToken)
             } else {
-                Log.w(TAG, "token not changed")
+                Log.w(TAG, "${TelemetryHolder.get().clientId}/token not changed:$currentFcmToken ")
             }
         }
 
         private fun handleNewToken(applicationContext: Context, token: String) {
-            runBlocking {
-                withContext(Dispatchers.IO) {
-                    FirebaseHelper.getFirebase().getUserToken {
+            FirebaseHelper.getFirebase().getUserToken {
+                runBlocking {
+                    withContext(Dispatchers.IO) {
                         it?.apply {
                             sendRegistrationToServer(applicationContext, this, token)
                         }

@@ -232,6 +232,8 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
         fun checkFcmTokenUploaded(applicationContext: Context) {
             val hashedFcmToken = Settings.getInstance(applicationContext).hashedFcmToken
             val currentFcmToken = FirebaseHelper.getFirebase().getFcmToken()
+            Log.w(TAG, "REMOVE LATER ${TelemetryHolder.get().clientId}/token not changed:$currentFcmToken ")
+
             if (currentFcmToken == null) {
                 Log.w(TAG, "currentFcmToken is null. Wait for it and retry")
                 return
@@ -240,7 +242,7 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
                 Log.d(TAG, "handleNewToken....")
                 handleNewToken(applicationContext, currentFcmToken)
             } else {
-                Log.w(TAG, "${TelemetryHolder.get().clientId}/token not changed:$currentFcmToken ")
+                Log.w(TAG, "token not changed")
             }
         }
 

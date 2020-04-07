@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.focus.notification
 
+import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -22,6 +23,7 @@ abstract class FirebaseMessagingServiceWrapper : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         // This happens when the app is running in foreground, and the user clicks on the push
         // notification with payload "PUSH_OPEN_URL"
+        Log.d("ddddd", "------${remoteMessage.messageId} // ${remoteMessage.data?.get("title")}")
         if (remoteMessage.notification != null) {
 
             val title = remoteMessage.notification?.title

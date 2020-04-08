@@ -27,6 +27,7 @@ import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import org.mozilla.focus.telemetry.TelemetryWrapper
 import org.mozilla.focus.telemetry.TelemetryWrapper.getNotification
 import org.mozilla.focus.telemetry.TelemetryWrapper.isTelemetryEnabled
+import org.mozilla.focus.utils.AppConfigWrapper
 import org.mozilla.focus.utils.FirebaseHelper
 import org.mozilla.focus.utils.IntentUtils
 import org.mozilla.focus.utils.Settings
@@ -51,7 +52,10 @@ class RocketMessagingService : FirebaseMessagingServiceWrapper() {
     }
 
     override fun onDataMessage(data: MutableMap<String, String>) {
-
+        if (AppConfigWrapper.isServerPushDisabled()) {
+            // return early if we pref off this feature in Firebase Remote Config
+            return
+        }
         val messageId = parseMessageId(data)
         val title = parseTitle(data)
         val body = parseBody(data)

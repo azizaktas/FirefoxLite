@@ -77,6 +77,8 @@ object FirebaseHelper {
 
     const val STR_EXPERIMENT_NAME = "str_experiment_name"
 
+    const val BOOL_IS_SERVER_PUSH_DISABLED = "bool_is_server_push_disabled"
+
     private const val NEWLINE_PLACE_HOLDER = "<BR>"
 
     private lateinit var firebaseContract: FirebaseContract

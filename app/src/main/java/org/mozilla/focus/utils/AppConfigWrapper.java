@@ -32,6 +32,10 @@ public class AppConfigWrapper {
         return FirebaseHelper.getFirebase().getRcLong(FirebaseHelper.RATE_APP_NOTIFICATION_THRESHOLD);
     }
 
+    public static boolean isServerPushDisabled() {
+        return FirebaseHelper.getFirebase().getRcBoolean(FirebaseHelper.BOOL_IS_SERVER_PUSH_DISABLED);
+    }
+
     public static long getShareDialogLaunchTimeThreshold(final boolean needExtend) {
         if (needExtend) {
             return FirebaseHelper.getFirebase().getRcLong(FirebaseHelper.SHARE_APP_DIALOG_THRESHOLD) +
